@@ -359,7 +359,7 @@ FROM topspotifyeighteen) AS temprngsubq
 ORDER BY avgdancepertempo DESC
 
 
---Looking at the average danceability rating for tempo ranges in descending order
+--Looking at the average danceability rating for tempo ranges in descending order to find the most danceable tempo
 
 SELECT temporanges, ROUND(AVG(danceability))
 FROM
@@ -422,7 +422,7 @@ ORDER BY speechiness DESC
 
 --Looking at the artists with multiple entries and greater than average energy ratings 
 
-SELECT artists, COUNT(artists)
+SELECT topspot.artists, COUNT(artists)
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
 	ON topspot.energy > avgesubq.avge
@@ -433,7 +433,7 @@ ORDER BY COUNT(artists) DESC
 --Aggregating data to see artists with a higher than average danceability rating, the songs, and filtering for artists with more than two entries
 
 WITH CTE_dancy AS
-(SELECT name, artists, danceability, 
+(SELECT topspot.name, topspot.artists, topspot.danceability, 
  COUNT(artists) OVER (PARTITION BY artists) artistcount
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(danceability) avgd FROM topspotifyeighteen) avgdsubq
@@ -447,7 +447,7 @@ ORDER BY artistcount DESC
 --Looking at artists with higher than avg energy rating and more than one entry in the dataset
 
 WITH CTE_energy AS
-(SELECT name, artists, energy, 
+(SELECT topspot.name, topspot.artists, topspot.energy, 
  COUNT(artists) OVER (PARTITION BY artists) artistcount
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
