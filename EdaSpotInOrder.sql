@@ -3,7 +3,8 @@ This is a data analysis project using SQL that takes a look into Spotify's Top 1
 
 This SQL project has two main components to it. The first being data cleaning and the second being exploratory data analysis.
 The beginning starts off with me cleaning/updating/transforming the data & changing data types. 
-The was followed by me doing more aggregational & functional queries in order to create insights from this dataset.*/
+The was followed by me doing more aggregational & functional queries in order to create insights from this dataset.
+*/
 
 Lets begin.
 
@@ -17,20 +18,21 @@ ALTER TABLE topspotifyeighteen ADD COLUMN songid SERIAL PRIMARY KEY;
 ALTER TABLE topspotifyeighteen
 DROP COLUMN id
 
---Cleaning data with question marks
-/*From here I began to clean the data, starting with the question marks I came across, an instant red flag.
- */ 
 
-/*I used this query to filter for every value in name column 
-and artists column that had a question mark */
+--Cleaning data with question marks
+--From here I began to clean the data, starting with the question marks I came across, an instant red flag.
+  
+--Searching for any value with a question mark
 
 SELECT songid, name, artists
 FROM topspotifyeighteen
 WHERE name LIKE '%?%'
 	OR artists LIKE '%?%'
+	
 
---Updated everything that had a question mark
---I researched the correct names of artists and songs and updated the values accordingly
+--Updating every value that had a question mark
+--I researched the correct names of artists and songs & updated the values accordingly
+
 UPDATE topspotifyeighteen
 SET name = 'Te Bote - Remix'
 WHERE songid = '22';
@@ -53,46 +55,52 @@ UPDATE topspotifyeighteen
 SET name = 'Siguelo Bailando'
 WHERE songid = '88'
 
---Next I saw that tempos were wrong
-/*Updating wrong tempo's above 130bpm 
-to be halved because majority of true tempos above 130 are halved
-I had to research each song on a case by case basis to make sure each tempo was being updated correctly.*/
+
+--Cleaning incorrect tempos
+--I had to research each song on a case by case basis to make sure each tempo had the correct value
+
 UPDATE topspotifyeighteen
 SET tempo = tempo/2
 WHERE tempo > 130
 
---ROUNDING THE TEMPOS
+
+--Rounding the tempos
+
 UPDATE topspotifyeighteen
 SET tempo = ROUND(tempo)
 
---Going through and updating the next set of tempos that are wrong
+
+--Going through and looking at the next set of tempos that were wrong
+
 SELECT songid, name, artists, tempo
 FROM TOPSPOTIFYEIGHTEEN
 ORDER BY tempo desc
 
---Going through tempos again and updating tempos for other artists who's tempos were incorrect
+
+--Updating tempos for specific artists who's tempos were incorrect
+
 UPDATE topspotifyeighteen
 SET tempo = tempo/2
 WHERE tempo > 116 AND artists IN ('XXXTENTACION', '6ix9ine', 'Post Malone', 'Lil Baby')
 
-/*Converting the time of duration*/
---ms to seconds conversion
+
+--Converting the time of duration
+--Converting ms to seconds 
+
 UPDATE topspotifyeighteen
 SET duration_ms = duration_ms * .001;
---seconds to minutes conversion
+--Seconds to minutes conversion
 UPDATE topspotifyeighteen
 SET duration_ms = duration_ms/60
 --Rounding to nearest hundredth
 UPDATE topspotifyeighteen
 SET duration_ms = ROUND(duration_ms, 1)
---change name because we have converted the values to minutes now
+--Changing the column name because we have converted the values to minutes now
 ALTER TABLE topspotifyeighteen
 RENAME COLUMN duration_ms to duration_mins
 
 
-/* Wanted to make danceability, energy, and speechiness 
-whole numbers so it was in a format that was easier to
-read and compare rather than having it as a decimal*/
+-- Changing danceability, energy, and speechiness into whole numbers so it is in a format that was easier to read and compare for later
 
 UPDATE topspotifyeighteen
 SET danceability = ROUND(danceability * 100)
@@ -101,22 +109,41 @@ SET energy = ROUND(energy * 100)
 UPDATE topspotifyeighteen
 SET speechiness = ROUND(speechiness * 100)
 
-/*All data values had a parenthesis instead of [ when listing features so I changed the one value with [ to parenthesis
-to be consistent with the rest of the data*/
---fixed cardi b to have ( instead of [
+
+--Fixed all values to have parenthesis when listing features for consistency
+
 UPDATE topspotifyeighteen
 SET name = 'Finesse Remix (feat. Cardi B)'
 WHERE songid = '47'
 
+
+
+
+
+
+
+
+
+
+
 --THIS MARKS THE END OF THE DATA CLEANING PROCESS
 
-/*This next section is where I began my aggregate/manipulative functions
-in order to extract insights from the data*/
 
 
-/*Out of the top 100 most streamed songs, 
-What artist had the most entries of of this list, filtered by artists who have at least 2 entries.
-*/
+
+
+
+
+
+
+
+
+
+--This next section is where the exploratory data analysis begins
+
+
+
+--Artists that had the most song entries on this list, filtered for artists who had at least 2 entries
 
 SELECT artists, COUNT(artists)
 FROM topspotifyeighteen
@@ -124,25 +151,27 @@ GROUP BY artists
 HAVING COUNT(artists) >= 2
 ORDER BY COUNT(artists) DESC
 
-/*Looking at the most FEATURED artist
-Every song used a term that said "FEAT" or "WITH"
-filtered for featured artists*/
+
+--Looking at all of the featured artists of this dataset
+
 SELECT name
 FROM topspotifyeighteen
 WHERE name LIKE '%feat%'
 	OR name LIKE '%with%'
+	
 
 --Using a substring to seperate featured artists from the song title
+
 SELECT name, SUBSTRING(name FROM POSITION('(' IN name)) AS featuredartists
 FROM
 	(SELECT name
 	FROM topspotifyeighteen
 	WHERE name LIKE '%feat%'
 		OR name LIKE '%with%') AS ftartists
+		
 
-/*Used SUBSTR formula to take away parenthesis 
-so you can see just the featured artists
-AND then I stored it into a CTE*/
+--Using a SUBSTR formula to take away parenthesis so you can see just the featured artists then storing it into a CTE
+
 WITH CTE_featuredartists AS
 (SELECT SUBSTRING(name FROM POSITION('(' IN name)) AS features
 FROM
@@ -153,12 +182,14 @@ FROM
 SELECT SUBSTRING(features FROM POSITION(' ' IN features) FOR POSITION(')' IN features) - POSITION(' ' IN features)) AS substringofcte
 FROM CTE_featuredartists
 
-/*Wanted to use this list as a temp table
-A temptable of featured artists from the original dataset*/
---created temp table
+
+--Creating a temptable to see a list of all featured artists from the original dataset
+
 CREATE TEMP TABLE temp_featuredartists (features varchar)
 
---inserted cte into temp table
+
+--Inserted the previous CTE into temp table
+
 INSERT INTO temp_featuredartists
 WITH CTE_featuredartists AS
 (SELECT SUBSTRING(name FROM POSITION('(' IN name)) AS features
@@ -170,24 +201,18 @@ FROM
 SELECT SUBSTRING(features FROM POSITION(' ' IN features) FOR POSITION(')' IN features) - POSITION(' ' IN features)) AS substringofcte
 FROM CTE_featuredartists
 
-/*Temptable created and count all features, 
-This doesnt accurately depict the count of an artist who may have been a part of a song with multiple featured artists*/
+
+--Using the TEMP Table to count all features to see who was the most featured artist of the year, 
+--However, this doesnt take into account an artist who may have been a part of a song with multiple featured artists
+
 SELECT features, COUNT(features)
 FROM temp_featuredartists
 GROUP BY features
 ORDER BY COUNT(features) DESC
 
-/*We see Cardi B had the most stand alone features but we also saw
-that there were features that listed more than just one artist*/
 
-/*Used this query below to filter for the artists that came up more than once
-in the above query to get a more accurate count of artists features, which includes
-not just standalone features but multiple features on one song*/
-Halsey and Khalid tied for 2nd most features.
-Cardi B still had the highest amount of features when counting not just her singlular features where
-she was the only artist on a song but counting features from multiple people
-being on one song*/
 
+--Looking deeper at artists who came up more than once in the above query but were counted only once because of formatting
 SELECT COUNT(features), features
 FROM temp_featuredartists
 WHERE features LIKE '%Khalid%'
@@ -196,14 +221,14 @@ WHERE features LIKE '%Khalid%'
 	OR features LIKE '%Halsey%'
 GROUP BY features
 
-/*Next I wanted to look at tempos*/
 
---Looking at the average tempo
+--Taking a look at the average tempo
 SELECT AVG(tempo)
 FROM topspotifyeighteen
 
-/*Using a CASE statement to put each tempo into a range and see what tempo range was the most popular of the year 2018*/
---popular tempo ranges
+
+--Using a CASE statement to put each tempo into a range and see what tempo range was the most popular of the year 2018
+
 SELECT temporanges, COUNT(temporanges)
 FROM
 (SELECT 
@@ -221,12 +246,15 @@ FROM topspotifyeighteen) AS temprngsubq
 GROUP BY temporanges
 ORDER BY COUNT(temporanges) DESC
 
-/*These were the songs of the most popular tempo range*/
+
+--Showing the specific songs of the most popular tempo range
 SELECT songid, *
 FROM topspotifyeighteen
 WHERE tempo BETWEEN 90 AND 99
 
-/*Using a windows function to see the average danceability rating of the most popular tempo range*/
+
+--Using a windows function to see the average danceability rating of the most popular tempo range
+
 SELECT *, AVG(danceability) OVER (PARTITION BY ninetystempo)
 FROM
 	(SELECT tempo, danceability, 
@@ -235,8 +263,9 @@ FROM
 	END AS ninetystempo
 	FROM topspotifyeighteen
 	WHERE tempo BETWEEN 90 AND 99) subq
+	
 
-/* Looking atThe most popular specific tempo of the most popukar tempo range */
+--Looking at the most popular specific tempo of the most popular tempo range 
 
 SELECT tempo, COUNT(tempo)
 FROM topspotifyeighteen
@@ -246,6 +275,7 @@ ORDER BY COUNT(tempo) DESC
 
 
 --Looking at key thats most popular
+
 SELECT key, COUNT(key)
 FROM topspotifyeighteen
 GROUP BY key
@@ -253,22 +283,24 @@ ORDER BY COUNT(key) DESC
 
 
 
-/*As I got into the more aggregate functions below looking at averages in comparison to artists and such, I would filter for artists
+/*As I got into  more aggregate functions below looking at averages in comparison to artists and such, I would filter for artists
 with more than two entries to avoid an unrealistic skew in the data. One artist could have a very high rating for one of these attributes but
-only have that one song so it would essentially be inaccurate to call them the "most danceable" or "most energetic" artist since their
+would only have that one song, so it would essentially be inaccurate to call them the "most danceable" or "most energetic" artist since their
 one entry doesn't hold as much weight in comparison to artists with more consistent entries*/
 
 
-/*The rounded average danceability of an artist who has more than one entry
-in this dataset*/
+
+--The average danceability rating of an artists with more than two song entries
+
 SELECT artists, ROUND(AVG(danceability))
 FROM topspotifyeighteen
 GROUP BY artists
 HAVING COUNT(artists) > 2
 
-/*Similar to the query above except in partition form and shows the average dance rating for
-all tracks. We can look at this side by side with the artist, amount of entries for the artist (filtered for artists with more than two entries).
-and the avg danceability of each artist*/
+
+
+--Aggregating data to see artists with more than two entries, the avg danceability of each artist, and the average danceability rating overall
+
 SELECT *
 FROM
 	(SELECT artists,
@@ -280,8 +312,8 @@ WHERE artistentries > 2
 ORDER BY artistentries DESC, avgdanceperartist DESC
 
 
-/*Looking for the most streamed artists except filtering for artists that not only have more than two entries
-but also a higher than average dance rating */
+--Looking at artists with more than two entries with a higher than average dance rating, essentially looking at the most danceable artists
+
 SELECT *
 FROM
 	(SELECT artists,
@@ -293,9 +325,8 @@ WHERE artistentries > 2 AND avgdanceperartist > avgdance
 ORDER BY artistentries DESC, avgdanceperartist DESC
 
 
-/*Looking for the most streamed artists except filtering for artists that not only have more than two entries
-but also a higher than average energy rating*/
---majority of these top entry artist's energy ratings are below avg
+--Looking at artists with more than two entries with a higher than average energy rating, essentially looking at the most energetic artists
+
 SELECT *
 FROM
 	(SELECT artists,
@@ -306,7 +337,9 @@ FROM
 WHERE artistentries > 2 AND avgenergyperartist > avgenergy
 ORDER BY artistentries DESC, avgenergyperartist DESC
 
---Looking at which tempo range has the highest average dancability rating while also comparing it to the amount of entries per tempo range
+
+--Aggregating the data to see what tempo range has the highest average dancability rating while also looking at the amount of entries per tempo range
+
 SELECT temporanges, 
 COUNT(temporanges) OVER (PARTITION BY temporanges), 
 AVG(danceability) OVER (PARTITION BY temporanges) avgdancepertempo
@@ -326,7 +359,8 @@ FROM topspotifyeighteen) AS temprngsubq
 ORDER BY avgdancepertempo DESC
 
 
---Looking at the average danceability rating for tempo ranges from highest to lowest average danceability rating using GROUP BY
+--Looking at the average danceability rating for tempo ranges in descending order
+
 SELECT temporanges, ROUND(AVG(danceability))
 FROM
 	(SELECT tempo, danceability,
@@ -344,8 +378,9 @@ FROM
 GROUP BY temporanges
 ORDER BY AVG(danceability) DESC
 
-/*Looking at the average energy ratings in comparison to tempo ranges and ordering the results to see the highest average energy rating in descending order
-for each tempo range*/
+
+--Looking at each tempo range's average energy rating to find the most energetic tempo range 
+
 SELECT temporanges, AVG(energy) avgenergypertempo
 FROM
 	(SELECT tempo, energy,
@@ -364,7 +399,8 @@ GROUP BY temporanges
 ORDER BY AVG(energy) DESC
 
 
-/*Looking at the list of all of the songs with a higher than average duration in minutes*/
+--Taking a look at the list of all of the songs with a higher than average duration in minutes
+
 SELECT name, duration_mins, 
 (SELECT AVG(duration_mins) FROM topspotifyeighteen) avgsongduration
 FROM topspotifyeighteen
@@ -373,7 +409,9 @@ WHERE duration_mins >
 	FROM topspotifyeighteen) 
 ORDER BY duration_mins DESC
 
-/*Seeing who the speechiest artists were*/
+
+--Seeing who the speechiest artists were
+
 SELECT artists, name, speechiness
 FROM topspotifyeighteen
 WHERE speechiness >
@@ -381,7 +419,9 @@ WHERE speechiness >
 	FROM topspotifyeighteen)
 ORDER BY speechiness DESC
 
-/* Looking at the artists with greater than average energy ratings that also had more than one entry in this dataset*/
+
+--Looking at the artists with multiple entries and greater than average energy ratings 
+
 SELECT artists, COUNT(artists)
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
@@ -389,9 +429,9 @@ JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
 GROUP BY artists
 ORDER BY COUNT(artists) DESC
 
-/*
-Essentially looking at artists with higher than average danceability records that have more than two records
-Looking at the most danceable artists and songs of the year*/
+
+--Aggregating data to see artists with a higher than average danceability rating, the songs, and filtering for artists with more than two entries
+
 WITH CTE_dancy AS
 (SELECT name, artists, danceability, 
  COUNT(artists) OVER (PARTITION BY artists) artistcount
@@ -403,7 +443,9 @@ FROM CTE_dancy
 WHERE artistcount > 2
 ORDER BY artistcount DESC
 
-/*Looking at artists with higher than avg energy rating and more than one entry in the dataset*/
+
+--Looking at artists with higher than avg energy rating and more than one entry in the dataset
+
 WITH CTE_energy AS
 (SELECT name, artists, energy, 
  COUNT(artists) OVER (PARTITION BY artists) artistcount
@@ -415,19 +457,25 @@ FROM CTE_energy
 WHERE artistcount > 1
 ORDER BY artistcount DESC
 
-/*Looking at the top 5 danciest songs*/
+
+--Looking at the top 5 danciest songs
+
 SELECT *
 FROM topspotifyeighteen
 ORDER BY danceability DESC
 LIMIT 5
 
-/*Looking at the top 5 most energetic songs*/
+
+--Looking at the top 5 most energetic songs
+
 SELECT *
 FROM topspotifyeighteen
 ORDER BY energy DESC
 LIMIT 5
 
-/*Queries for correlation visualization below*/
+
+--Creating a view to store data for later visualizations to look at correlation
+
 SELECT tempo, danceability
 FROM topspotifyeighteen
 
