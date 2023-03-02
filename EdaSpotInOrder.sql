@@ -422,7 +422,7 @@ ORDER BY speechiness DESC
 
 --Looking at the artists with multiple entries and greater than average energy ratings 
 
-SELECT topspot.artists, COUNT(artists)
+SELECT topspot.artists, COUNT(topspot.artists)
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
 	ON topspot.energy > avgesubq.avge
@@ -434,7 +434,7 @@ ORDER BY COUNT(artists) DESC
 
 WITH CTE_dancy AS
 (SELECT topspot.name, topspot.artists, topspot.danceability, 
- COUNT(artists) OVER (PARTITION BY artists) artistcount
+ COUNT(topspot.artists) OVER (PARTITION BY topspot.artists) artistcount
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(danceability) avgd FROM topspotifyeighteen) avgdsubq
 	ON topspot.danceability >= avgdsubq.avgd)
@@ -448,7 +448,7 @@ ORDER BY artistcount DESC
 
 WITH CTE_energy AS
 (SELECT topspot.name, topspot.artists, topspot.energy, 
- COUNT(artists) OVER (PARTITION BY artists) artistcount
+ COUNT(topspot.artists) OVER (PARTITION BY topspot.artists) artistcount
 FROM topspotifyeighteen topspot
 JOIN (SELECT AVG(energy) avge FROM topspotifyeighteen) avgesubq
 	ON topspot.energy >= avgesubq.avge)
@@ -474,27 +474,30 @@ ORDER BY energy DESC
 LIMIT 5
 
 
---Creating a view to store data for later visualizations to look at correlation
+--Creating views to store data for later visualizations to look at correlation
 
+CREATE VIEW TempoVsDanceability AS
 SELECT tempo, danceability
 FROM topspotifyeighteen
 
+CREATE VIEW TempoVsEnergy AS
 SELECT tempo, energy
 FROM topspotifyeighteen
 
+CREATE VIEW TempoVsSpeechiness AS
 SELECT tempo, speechiness
 FROM topspotifyeighteen
 
+CREATE VIEW SpeechinessVsDanceability AS
 SELECT speechiness, danceability
 FROM topspotifyeighteen
 
+CREATE VIEW SpeechinessVsEnergy AS
 SELECT speechiness, energy
 FROM topspotifyeighteen
 
+CREATE VIEW EnergyVsDanceability AS
 SELECT energy, danceability
-FROM topspotifyeighteen
-
-SELECT danceability, energy
 FROM topspotifyeighteen
 
 
