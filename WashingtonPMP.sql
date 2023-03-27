@@ -5,7 +5,7 @@ I used PostgreSQL to query this large dataset to gain insights and trends from t
 data from the year of 2022. 
 Skills used: Joins, Subqueries, Aggregate Functions, Windows Functions, CTE's, Temp Tables
 
-The details on the collection, management, limitations of the data, and the dataset itself can be found at:
+The details on the collection, management, limitations of the data, schema, and the dataset itself can be found at:
 https://data.wa.gov/health/Prescription-Monitoring-Program-PMP-Public-Use-Dat/8y5c-ekcc
 */
 
@@ -69,7 +69,7 @@ ORDER BY COUNT(drugclass) DESC
 
 
 --Aggregated the data in an effort to create an insight based on what the most common drugnamewithstrength Rx was and what schedule it belonged to
-SELECT schedule, drugnamewithstrength, MAX(drugnamestrcount) 
+SELECT t1.schedule, t1.drugnamewithstrength, MAX(drugnamestrcount) 
  FROM
 	(SELECT schedule, drugnamewithstrength, COUNT(drugnamewithstrength) AS drugnamestrcount
 		FROM wapmp
@@ -80,6 +80,20 @@ ORDER BY MAX(drugnamestrcount) DESC
 
 
 
+--Used HAVING to filter for generic drug names with a higher than average count of outgoing RX's while also taking a look at their drug class
+SELECT drugclass, genericdrugname, COUNT(genericdrugname)
+FROM wapmp
+GROUP BY drugclass, genericdrugname
+HAVING COUNT(*) >
+			(SELECT AVG(gendrug)
+			 FROM
+				(SELECT drugclass, genericdrugname, COUNT(genericdrugname) AS gendrug
+				 FROM wapmp
+				 GROUP BY drugclass, genericdrugname) AS gendrugsubq) 
+ORDER BY COUNT(genericdrugname) DESC
+
+
+				 
 /*Fortunately enough, all of the data came in one table. 
 For the sake of completing a join I decided to use a subquery join look into 
 higher than average refills & filtered for no abnormally high refills, no nulls, and no animals.*/
@@ -92,7 +106,21 @@ WHERE refillsauthorized IS NOT NULL
 	  AND refillsauthorized != 99
 	  AND animal = 'n'
 	
-	
+
+/*I could've achieved the same result by writing the above query differently. 
+Instead of using a subquery as a JOIN I used one in the WHERE clause. This results in the same results. See below.*/
+SELECT *
+FROM
+   (SELECT *
+	FROM wapmp
+	WHERE refillsauthorized >
+		  (SELECT AVG(refillsauthorized) avgrefsub
+		   FROM wapmp)) greatavgrefills
+WHERE refillsauthorized IS NOT NULL
+AND refillsauthorized != 99
+AND animal = 'n'
+
+
 	
 --Looking at what refill count was prescribed the most
 SELECT refillsauthorized, COUNT(refillsauthorized)
@@ -351,7 +379,7 @@ WHERE mmefactor IS NOT NULL
 	  
 
 
---Of all the opioids with mmes, filter out for Rx's with higher than average mme strength per unit
+--Of all the Opioids with mmes, filter out for Rx's with higher than average mme strength per unit
 SELECT drug, drugclass, drugnamewithstrength, strengthperunit, quantity, dayssupply, mmefactor, totalmme, dailymme, recordnumber
 FROM temps_mme
 WHERE strengthperunit >
@@ -429,7 +457,7 @@ WHERE totalmmechecks != 'Correct Total'
 
 
 
---looking at the records with higher than average TotalMME's
+--Looking at the records with higher than average TotalMME's
 SELECT *
 FROM temps_mme tem
 JOIN (SELECT AVG(totalmme) avgmme FROM temps_mme) totalavgsubq
@@ -452,4 +480,7 @@ ORDER BY COUNT(drug) DESC, totalmme DESC
 
 
 /*Ending thoughts*/
-/* I would love to see data like this for the entire US as a whole instead of just one state to see what insights could be found*/
+/* I contemplated splitting the drug information into a different table for the sake of doing more JOINS but since all the information was already in one table
+I decided to use subquery joins instead. 
+I would love to see data like this for each state or even the entire US as a whole to see what insights could be found.
+If you have made it this far, I would like to say thank you for taking the time to look at this project. */
